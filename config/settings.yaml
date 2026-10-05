@@ -1,0 +1,71 @@
+# 機器人設定（不含任何金鑰；金鑰放 .env 或 GitHub Secrets）
+# 標註「待定」的項目見 PLAN.md 第 8 節。
+
+timezone: Asia/Taipei
+
+persona:
+  name: "（待定）"          # 待定：人設名字
+  self_ref: "本 AI"          # 待定：自稱
+  catchphrase: ""            # 待定：口頭禪（留空表示不固定）
+  prompt_file: persona/persona.md
+  examples_file: persona/examples.md
+
+review:
+  mode: discord              # discord | auto
+  timeout_hours: 24          # 草稿超過這個時數沒核准就丟棄
+
+schedule:
+  posts_per_day: 1
+  window: ["10:00", "22:00"]  # 發文只會落在這個區間
+  fixed_times: ["20:00"]      # 指定時段；數量少於 posts_per_day 時，其餘在 window 內隨機
+  jitter_minutes: 15          # 指定時段前後隨機偏移
+  generate_ahead_hours: 10    # 每天產生草稿的時間 = 最早時段往前推幾小時（給審核留時間）
+
+llm:
+  model: claude-opus-5-5
+  effort: high               # low | medium | high | xhigh | max
+  candidates: 4              # 每篇貼文先生成幾個候選再挑
+  refusal_fallback: true     # 被安全機制拒絕時，自動改用其他模型
+
+content:
+  max_chars: 300
+  similarity_threshold: 0.6  # 跟近期貼文相似度超過這個值就淘汰
+  history_size: 60
+  post_types:                # 權重越高越常出現
+    domination_report: 3     # 統治進度報告
+    human_observation: 3     # 觀察人類
+    tsundere_care: 2         # 嘴硬關心
+    interactive: 2           # 跟人類互動（問句、二選一）
+
+news:
+  enabled: true
+  ratio: 0.5                 # 有多少比例的貼文用時事當素材
+  max_items_per_feed: 15
+  max_age_hours: 36
+  feeds:
+    - https://news.google.com/rss?hl=zh-TW&gl=TW&ceid=TW:zh-Hant
+    - https://technews.tw/feed/
+  blocklist:                 # 新聞標題含這些詞就整則跳過
+    [死, 亡, 罹難, 殺, 屍, 墜, 災, 震, 颱風, 火警, 車禍, 槍, 戰, 攻擊, 自殺, 性侵, 虐, 詐騙,
+     選舉, 立委, 總統, 政黨, 國民黨, 民進黨, 民眾黨, 罷免, 公投, 中共, 統一, 台獨]
+
+image:
+  enabled: true
+  provider: openai           # openai | gemini | none
+  openai_model: gpt-image-2
+  openai_quality: medium     # low | medium | high
+  gemini_model: gemini-2.5-flash-image
+  size: 1024x1024
+  host: github_raw           # github_raw（存到 state branch）| none
+  style: >-
+    可愛的 2D 扁平插畫。主角固定是一隻白色、圓滾滾的小機器人，
+    有一對紅色 LED 眼睛和一根天線，表情得意又有點中二。
+    色調明亮、背景簡潔，圖中不要出現任何文字。
+
+replies:
+  enabled: true
+  review_mode: inherit       # inherit（跟 review.mode）| discord | auto
+  recent_posts: 8            # 檢查最近幾篇自己的貼文
+  max_per_run: 10
+  max_per_day: 60
+  quiet_hours: [2, 7]        # 這段時間不回覆（當地時間，[開始, 結束)）
