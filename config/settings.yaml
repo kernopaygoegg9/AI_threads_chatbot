@@ -2,6 +2,7 @@
 # 標註「待定」的項目見 PLAN.md 第 8 節。
 
 timezone: Asia/Taipei
+state_branch: state          # 狀態與圖片存放的 branch（GitHub Actions 自動同步）
 
 persona:
   name: "（待定）"          # 待定：人設名字
