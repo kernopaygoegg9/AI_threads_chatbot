@@ -23,6 +23,7 @@ def cmd_generate(args, st: Store) -> int:
 def cmd_tick(args, st: Store) -> int:
     """Everything the 15-minute cron does. Steps are isolated so one failure doesn't block the rest."""
     steps = {
+        "generate": lambda: jobs.generate_today(st),
         "sync_reviews": lambda: jobs.sync_reviews(st),
         "publish_due": lambda: jobs.publish_due(st),
         "replies": lambda: replies.process(st),
@@ -119,7 +120,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--force", action="store_true", help="generate even if already done today")
     s.set_defaults(fn=cmd_generate)
 
-    sub.add_parser("tick", help="sync reviews, publish due drafts, reply to comments, refresh token").set_defaults(
+    sub.add_parser("tick", help="generate (once a day), sync reviews, publish, reply, refresh token").set_defaults(
         fn=cmd_tick
     )
 

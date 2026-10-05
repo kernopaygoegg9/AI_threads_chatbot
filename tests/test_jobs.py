@@ -113,3 +113,10 @@ def test_token_baseline_then_fresh():
     assert tokens.refresh_if_needed(st) == "baseline"
     assert tokens.refresh_if_needed(st) == "fresh"
     assert tokens.refresh_if_needed(st, now_utc() + timedelta(days=31)) == "dry_run"
+
+
+def test_generate_waits_for_generate_at(st, monkeypatch):
+    set_mode(monkeypatch, "auto")
+    monkeypatch.setitem(settings.config()["schedule"], "generate_at", "09:00")
+    assert jobs.generate_today(st, datetime(2026, 10, 6, 8, 59, tzinfo=TZ)) == []
+    assert len(jobs.generate_today(st, datetime(2026, 10, 6, 9, 0, tzinfo=TZ), rng=random.Random(0))) == 1

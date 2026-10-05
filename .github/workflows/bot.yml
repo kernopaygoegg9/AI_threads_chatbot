@@ -1,0 +1,52 @@
+name: bot
+
+# Runs every 15 minutes: generate today's drafts (once, at schedule.generate_at), pull Discord
+# review decisions, publish due posts, reply to comments, refresh the Threads token.
+# Nothing runs until the repository variable BOT_ENABLED is set to "true".
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+    inputs:
+      command:
+        description: "bot command"
+        type: choice
+        options: [tick, generate --force, draft, status]
+        default: tick
+
+concurrency:
+  group: bot-state
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    if: vars.BOT_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      STATE_DIR: state
+      DRY_RUN: ${{ vars.DRY_RUN || 'true' }}
+      THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+      THREADS_USERNAME: ${{ vars.THREADS_USERNAME }}
+      THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+      DISCORD_CHANNEL_ID: ${{ vars.DISCORD_CHANNEL_ID }}
+      DISCORD_REVIEWER_IDS: ${{ vars.DISCORD_REVIEWER_IDS }}
+      GH_TOKEN: ${{ secrets.GH_PAT }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --frozen --no-dev
+      - name: Pull state
+        run: scripts/state.sh pull
+      - name: Run bot
+        run: uv run --frozen python -m bot ${{ inputs.command || 'tick' }}
+      - name: Push state
+        if: always()
+        run: scripts/state.sh push "bot: ${{ inputs.command || 'tick' }} $(date -u +%FT%TZ)"

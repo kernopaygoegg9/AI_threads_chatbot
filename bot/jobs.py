@@ -32,12 +32,15 @@ def submit(st: Store, draft: dict, kind: str, image=None) -> dict:
 def generate_today(
     st: Store, now: datetime | None = None, *, force: bool = False, rng: random.Random | None = None
 ) -> list[dict]:
-    """Create today's post drafts (once per local day unless force)."""
+    """Create today's post drafts once per local day, at or after schedule.generate_at (force skips both checks)."""
     now = now or now_utc()
-    today = _local(now).date()
-    if not force and st.meta().get("last_generated_date") == today.isoformat():
-        st.log("generate_skipped", reason="already generated today")
-        return []
+    local = _local(now)
+    today = local.date()
+    if not force:
+        if st.meta().get("last_generated_date") == today.isoformat():
+            return []
+        if f"{local:%H:%M}" < settings.config()["schedule"].get("generate_at", "00:00"):
+            return []
 
     created = []
     for slot in scheduler.slots_for_day(today, rng=rng):

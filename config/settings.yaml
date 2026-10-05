@@ -20,7 +20,7 @@ schedule:
   window: ["10:00", "22:00"]  # 發文只會落在這個區間
   fixed_times: ["20:00"]      # 指定時段；數量少於 posts_per_day 時，其餘在 window 內隨機
   jitter_minutes: 15          # 指定時段前後隨機偏移
-  generate_ahead_hours: 10    # 每天產生草稿的時間 = 最早時段往前推幾小時（給審核留時間）
+  generate_at: "09:00"        # 每天幾點產生當天的草稿（要早於第一個時段，留時間審核）
 
 llm:
   model: claude-opus-5-5
