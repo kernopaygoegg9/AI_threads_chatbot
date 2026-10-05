@@ -181,9 +181,19 @@ GitHub Actions 沒有常駐的主機，所以 webhook 和即時互動都改成�
 
 已決定的設定見第 5 節的表格。
 
-1. **人設名字、自稱、口頭禪**（候選見第 10 節）
-2. **Threads 帳號**：沿用舊帳號或開新帳號（建議見第 11 節）
-3. **圖片模型**：先試哪一家（見第 9 節）
+以下項目已經做成可以切換的設定，先用預設值開發，等你決定後改設定就好。
+
+| # | 待決事項 | 目前預設 | 改哪裡 |
+|---|---|---|---|
+| 1 | 人設名字、自稱、口頭禪（候選見第 10 節） | 名字「（待定）」、自稱「本 AI」 | `config/settings.yaml` → `persona` |
+| 2 | Threads 帳號：沿用舊帳號或開新帳號（建議見第 11 節） | — | 只影響 `.env` 和 Secrets |
+| 3 | 圖片模型先試哪一家（見第 9 節） | `openai`（gpt-image） | `config/settings.yaml` → `image.provider` |
+| 4 | RSS 新聞來源清單 | Google News 台灣、科技新報 | `config/settings.yaml` → `news.feeds` |
+| 5 | 原創梗和時事梗的比例 | 時事 50% | `config/settings.yaml` → `news.ratio` |
+| 6 | 留言回覆要不要也送 Discord 審核 | 跟著發文的審核模式 | `config/settings.yaml` → `replies.review_mode` |
+| 7 | Discord 上誰可以核准 | 任何人（非 bot）的 ✅ 都算 | `DISCORD_REVIEWER_IDS` |
+| 8 | 圖片放在哪裡（Threads 需要公開網址） | 存到 repo 的 `state` branch，用 raw 網址 | `config/settings.yaml` → `image.host` |
+| 9 | 固定角色形象（讓每張圖風格一致） | 「白色圓滾滾小機器人、紅色 LED 眼睛」 | `config/settings.yaml` → `image.style` |
 
 ---
 
