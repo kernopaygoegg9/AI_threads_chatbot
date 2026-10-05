@@ -37,6 +37,10 @@ content:
     tsundere_care: 2         # 嘴硬關心
     interactive: 2           # 跟人類互動（問句、二選一）
 
+guard:
+  min_score: 6               # Claude 審查分數（0–10）低於這個值就不採用
+  banned_words: [自殺, 輕生, 炸彈, 毒品, 槍枝, 殺了你]   # 出現就直接淘汰（不經過 LLM）
+
 news:
   enabled: true
   ratio: 0.5                 # 有多少比例的貼文用時事當素材
