@@ -1,4 +1,5 @@
 """Fetch news headlines from RSS feeds and drop anything unsafe to joke about."""
+
 from __future__ import annotations
 
 import calendar
@@ -45,12 +46,14 @@ def fetch(st: Store) -> list[dict]:
                 continue
             if published and published < cutoff:
                 continue
-            items.append({
-                "title": title,
-                "link": link,
-                "source": source,
-                "published": iso(published) if published else None,
-            })
+            items.append(
+                {
+                    "title": title,
+                    "link": link,
+                    "source": source,
+                    "published": iso(published) if published else None,
+                }
+            )
     return items
 
 

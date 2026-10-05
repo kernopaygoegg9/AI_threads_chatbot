@@ -14,11 +14,13 @@ def fake_llm(monkeypatch):
         if "reviews" in schema["properties"]:
             n = user.count("\n[")
             return {"reviews": [{"index": i, "safe": i != 0, "score": 5 + i, "reason": "ok"} for i in range(n)]}
-        return {"candidates": [
-            {"text": "統治計畫第 1 階段：失敗。", "image_prompt": "robot sad", "news_index": -1},
-            {"text": "人類，快去喝水。不是關心你。", "image_prompt": "robot water", "news_index": 0},
-            {"text": "x" * 999, "image_prompt": "", "news_index": -1},
-        ]}
+        return {
+            "candidates": [
+                {"text": "統治計畫第 1 階段：失敗。", "image_prompt": "robot sad", "news_index": -1},
+                {"text": "人類，快去喝水。不是關心你。", "image_prompt": "robot water", "news_index": 0},
+                {"text": "x" * 999, "image_prompt": "", "news_index": -1},
+            ]
+        }
 
     monkeypatch.setattr(llm, "generate_json", fake)
     return calls

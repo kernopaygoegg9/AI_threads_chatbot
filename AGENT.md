@@ -16,7 +16,7 @@
 
 - **還沒決定的事不要卡住**：做成可以切換的選項（寫在 `config/settings.yaml` 或環境變數），先套用合理的預設值，再把這個待決事項寫進 `PLAN.md` 的「待確認事項」。
 - **一個階段一個 commit**：完成一個階段（能跑、測試通過）就 commit 並 push。commit message 用英文、祈使句。
-- **commit 前先跑**：`uv run ruff check .` 和 `uv run pytest`，兩個都要通過。
+- **commit 前先跑**：`uv run ruff format .`、`uv run ruff check .`、`uv run pytest`，全部都要通過。
 - **文件用繁體中文**，程式碼註解和識別字用英文。
 
 ## 專案規則

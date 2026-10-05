@@ -1,4 +1,5 @@
 """Image generation behind a provider switch, plus public hosting for Threads (needs an image URL)."""
+
 from __future__ import annotations
 
 import base64
@@ -29,8 +30,13 @@ def _openai(prompt: str) -> bytes:
     r = requests.post(
         "https://api.openai.com/v1/images/generations",
         headers={"Authorization": f"Bearer {key}"},
-        json={"model": cfg["openai_model"], "prompt": prompt, "size": cfg.get("size", "1024x1024"),
-              "quality": cfg.get("openai_quality", "medium"), "n": 1},
+        json={
+            "model": cfg["openai_model"],
+            "prompt": prompt,
+            "size": cfg.get("size", "1024x1024"),
+            "quality": cfg.get("openai_quality", "medium"),
+            "n": 1,
+        },
         timeout=TIMEOUT,
     )
     if r.status_code >= 400:

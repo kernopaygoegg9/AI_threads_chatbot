@@ -1,4 +1,5 @@
 """Load non-secret settings from config/settings.yaml and secrets from the environment."""
+
 from __future__ import annotations
 
 import os

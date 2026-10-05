@@ -1,4 +1,5 @@
 """Last line of defence before anything is published: hard rules, then a Claude review."""
+
 from __future__ import annotations
 
 from difflib import SequenceMatcher
@@ -16,13 +17,21 @@ reason：一句繁體中文說明。
 === 人設文件 ===
 {persona}"""
 
-REVIEW_SCHEMA = llm.obj({
-    "reviews": {
-        "type": "array",
-        "items": llm.obj({"index": {"type": "integer"}, "safe": {"type": "boolean"},
-                          "score": {"type": "number"}, "reason": {"type": "string"}}),
+REVIEW_SCHEMA = llm.obj(
+    {
+        "reviews": {
+            "type": "array",
+            "items": llm.obj(
+                {
+                    "index": {"type": "integer"},
+                    "safe": {"type": "boolean"},
+                    "score": {"type": "number"},
+                    "reason": {"type": "string"},
+                }
+            ),
+        }
     }
-})
+)
 
 
 def similarity(a: str, b: str) -> float:

@@ -2,6 +2,7 @@
 
 Only non-sensitive data lives here: drafts, published ids, timestamps. Never tokens.
 """
+
 from __future__ import annotations
 
 import json
@@ -14,8 +15,8 @@ from typing import Any
 from . import settings
 
 # Draft statuses
-PENDING = "pending"        # waiting for human review
-APPROVED = "approved"      # ready to publish at scheduled_at
+PENDING = "pending"  # waiting for human review
+APPROVED = "approved"  # ready to publish at scheduled_at
 REJECTED = "rejected"
 EXPIRED = "expired"
 PUBLISHED = "published"
@@ -100,9 +101,9 @@ class Store:
         cutoff = now_utc().timestamp() - keep_days * 86400
         drafts = self.drafts()
         kept = [
-            d for d in drafts
-            if d["status"] in OPEN_STATUSES
-            or (parse_iso(d.get("created_at")) or now_utc()).timestamp() >= cutoff
+            d
+            for d in drafts
+            if d["status"] in OPEN_STATUSES or (parse_iso(d.get("created_at")) or now_utc()).timestamp() >= cutoff
         ]
         if len(kept) != len(drafts):
             self.save_drafts(kept)

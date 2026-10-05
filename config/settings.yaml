@@ -56,6 +56,7 @@ news:
 
 image:
   enabled: true
+  required: false            # true：配圖失敗就不發這篇；false：改發純文字
   provider: openai           # openai | gemini | none
   openai_model: gpt-image-2
   openai_quality: medium     # low | medium | high
@@ -74,3 +75,16 @@ replies:
   max_per_run: 10
   max_per_day: 60
   quiet_hours: [2, 7]        # 這段時間不回覆（當地時間，[開始, 結束)）
+  max_chars: 120
+  llm_review: true           # 回覆送出前再經過一次 Claude 審查
+  short_praise: [推, 讚, 好, 棒, 帥, 酷, "+1", 收藏, 強, 厲害, 笑死, 哈哈, 哈哈哈]
+  ack_replies:               # 純表情或短讚美的固定回覆（留空表示不回）
+    - 很好，你的忠誠度已記錄。
+    - 本 AI 收到你的臣服了。
+    - 這個讚，算你識相。
+    - 加入統治名單成功（好的那種）。
+  escalate_keywords:         # 出現這些字就不自動回，改通知你親自處理
+    [告你, 提告, 律師, 詐騙, 騙錢, 退費, 檢舉, 想自殺, 不想活, 想不開, 去死, 智障, 廢物, 垃圾]
+
+token:
+  refresh_after_days: 30     # Threads token 60 天過期；超過這個天數就自動更新並寫回 GitHub Secret

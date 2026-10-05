@@ -1,4 +1,5 @@
 """Decide when posts go out: fixed slots plus random slots inside the posting window."""
+
 from __future__ import annotations
 
 import random

@@ -1,4 +1,5 @@
 """Build the persona system prompt from persona/*.md and the persona section of settings."""
+
 from __future__ import annotations
 
 from . import settings

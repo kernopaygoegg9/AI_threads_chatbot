@@ -52,10 +52,12 @@ def test_store_draft_lifecycle():
 def test_store_prune_keeps_open_drafts():
     st = store.Store()
     old = store.iso(store.now_utc() - timedelta(days=30))
-    st.save_drafts([
-        {"id": "a", "status": store.PUBLISHED, "created_at": old},
-        {"id": "b", "status": store.PENDING, "created_at": old},
-    ])
+    st.save_drafts(
+        [
+            {"id": "a", "status": store.PUBLISHED, "created_at": old},
+            {"id": "b", "status": store.PENDING, "created_at": old},
+        ]
+    )
     assert st.prune_drafts() == 1
     assert [d["id"] for d in st.drafts()] == ["b"]
 

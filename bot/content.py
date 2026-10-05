@@ -1,4 +1,5 @@
 """Generate one post: pick a type, optionally a headline, draft candidates, keep the best safe one."""
+
 from __future__ import annotations
 
 import random
@@ -6,16 +7,20 @@ import random
 from . import guard, llm, news, persona, settings
 from .store import Store
 
-CANDIDATE_SCHEMA = llm.obj({
-    "candidates": {
-        "type": "array",
-        "items": llm.obj({
-            "text": {"type": "string"},
-            "image_prompt": {"type": "string"},
-            "news_index": {"type": "integer"},
-        }),
+CANDIDATE_SCHEMA = llm.obj(
+    {
+        "candidates": {
+            "type": "array",
+            "items": llm.obj(
+                {
+                    "text": {"type": "string"},
+                    "image_prompt": {"type": "string"},
+                    "news_index": {"type": "integer"},
+                }
+            ),
+        }
     }
-})
+)
 
 
 class NoUsableCandidate(RuntimeError):
@@ -62,7 +67,7 @@ def generate_post(st: Store, *, use_news: bool | None = None, rng: random.Random
         use_news = news_cfg.get("enabled", False) and rng.random() < news_cfg.get("ratio", 0)
     headlines = news.fetch(st)[:12] if use_news else []
     post_type = pick_post_type(rng)
-    history = [h["text"] for h in st.history() if h.get("kind") == "post"][-cfg["content"].get("history_size", 60):]
+    history = [h["text"] for h in st.history() if h.get("kind") == "post"][-cfg["content"].get("history_size", 60) :]
     with_image = cfg["image"].get("enabled", False) and cfg["image"].get("provider") != "none"
 
     out = llm.generate_json(

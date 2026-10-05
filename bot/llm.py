@@ -1,4 +1,5 @@
 """Claude wrapper: every call returns JSON validated against a schema (structured outputs)."""
+
 from __future__ import annotations
 
 import json
