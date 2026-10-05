@@ -49,4 +49,5 @@ jobs:
         run: uv run --frozen python -m bot ${{ inputs.command || 'tick' }}
       - name: Push state
         if: always()
-        run: scripts/state.sh push "bot: ${{ inputs.command || 'tick' }} $(date -u +%FT%TZ)"
+        run: |
+          scripts/state.sh push "bot: ${{ inputs.command || 'tick' }} $(date -u +%FT%TZ)"
