@@ -68,7 +68,7 @@ def my_recent_threads(limit: int = 10) -> list[dict]:
 
 
 def replies(thread_id: str, limit: int = 100) -> list[dict]:
-    fields = "id,text,username,timestamp,replied_to,is_reply_owned_by_me"
+    fields = "id,text,username,timestamp,replied_to"
     return _get(f"{thread_id}/replies", fields=fields, limit=limit).get("data", [])
 
 

@@ -52,7 +52,7 @@ def _replies_last_24h(st: Store, now: datetime) -> int:
 def route(comment: dict, post: dict, st: Store, rng: random.Random) -> tuple[str, str | None]:
     """Return (action, reply_text). Actions: skip:*, escalate:*, reply:ack, reply:llm."""
     text = (comment.get("text") or "").strip()
-    if comment.get("is_reply_owned_by_me") or comment.get("username") == settings.load_secrets().threads_username:
+    if comment.get("username") == settings.load_secrets().threads_username:
         return "skip:self", None
     if comment["id"] in st.handled_comment_ids():
         return "skip:handled", None

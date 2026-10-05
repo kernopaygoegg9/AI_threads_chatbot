@@ -1,6 +1,6 @@
 # Threads AI 發文機器人：計畫書
 
-> 狀態：草案 v0.1（2026-10-05）
+> 狀態：v0.2（2026-10-06）程式 MVP 完成，等待帳號設定後試跑
 > 標記 ❓ 的地方還要你決定，見文末「待確認事項」。
 
 ---
@@ -133,14 +133,15 @@
 
 ### 在 GitHub Actions 上的做法
 
-GitHub Actions 沒有常駐的主機，所以 webhook 和即時互動都改成「排程輪詢 + 非同步審核」：
+GitHub Actions 沒有常駐的主機，所以 webhook 和即時互動都改成「排程輪詢 + 非同步審核」。實作時把原本規劃的四個 workflow 合併成**一個** `bot.yml`，每 15 分鐘跑一次 `tick`，用同一把 concurrency lock 避免多個執行同時寫入狀態：
 
-| Workflow | 頻率 | 動作 |
-|---|---|---|
-| `generate.yml` | 每天 1 次 | 生成當天的 N 篇草稿。`auto` 模式直接排進待發佇列；`discord` 模式透過 bot 推到審核頻道 |
-| `publish.yml` | 每 30 分鐘 | `discord` 模式：讀取草稿訊息上的 reaction（✅ 核准 / ❌ 丟棄），把核准的、而且到了預定時段的貼文發出去 |
-| `replies.yml` | 每 15–30 分鐘 | 拉自己最近貼文的新留言 → 過濾 → 生成回覆 → 依審核模式直接回或送 Discord |
-| `token.yml` | 每週 1 次 | 檢查 token 有沒有超過 30 天，超過就 refresh 並寫回 GitHub Secret |
+| `tick` 的步驟 | 動作 |
+|---|---|
+| generate | 每天到了 `schedule.generate_at` 才執行一次：生成當天的 N 篇草稿。`auto` 模式直接核准；`discord` 模式推到審核頻道 |
+| sync_reviews | 讀取 Discord 草稿訊息上的 ✅ / ❌；超過 `review.timeout_hours` 沒核准就丟棄 |
+| publish_due | 已核准、到了預定時間、而且在發文區間內的貼文就發出去 |
+| replies | 拉自己最近貼文的新留言 → 分層過濾 → 生成回覆 → 依審核模式直接回或送 Discord |
+| token | 超過 `token.refresh_after_days` 就 refresh，並寫回 GitHub Secret |
 
 **要注意的地方**
 - **狀態存哪**：Actions 每次執行都是乾淨的環境，所以佇列、已回覆的留言 ID、token 時間都要存在 repo 裡（例如另開一個 `state` branch 放 JSON / SQLite，由 bot commit 回去）
@@ -154,14 +155,19 @@ GitHub Actions 沒有常駐的主機，所以 webhook 和即時互動都改成�
 
 ## 6. 開發階段
 
-| 階段 | 內容 | 產出 |
+| 階段 | 內容 | 狀態 |
 |---|---|---|
-| P0 準備 | 建 Meta Developer App、Threads 測試帳號、取得長效 token | `.env` 設好，手動發出第一篇 |
-| P1 人設 | 寫 system prompt + 30 篇範例，離線生成 100 篇給你挑風格 | 定稿的 `persona/` |
-| P2 MVP | Fork 模板 + 加定時發文 + guard + 人工審核 | 每天自動產生草稿 → 核准 → 發文 |
-| P3 全自動 | 品質穩定後關掉審核，或只審高風險貼文 | 無人看管運行 |
-| P4 互動 | 開啟模板原本就有的「回覆自己貼文下的留言」，用同一個人設 | 跟粉絲鬥嘴 |
-| P5 優化 | 拉 insights，依成效調整貼文類型的比例和 prompt | 成效報表 |
+| P0 準備 | 建 Meta Developer App、Threads 帳號、取得長效 token、建 Discord bot、設 GitHub Secrets | ⏳ 要你本人操作（步驟見 README） |
+| P1 人設 | system prompt + 範例 + 紅線；用 `preview` 或控制台生成一批來挑風格 | 🟡 初版完成，名字待定 |
+| P2 MVP | 定時發文 + 時事 + 配圖 + guard + Discord 審核 | ✅ 程式完成（DRY_RUN 測試通過） |
+| P3 全自動 | 品質穩定後把 `review.mode` 改成 `auto` | ✅ 已經是設定開關 |
+| P4 互動 | 回覆自己貼文下的留言（分層：跳過 → 轉人工 → 固定回覆 → Claude） | ✅ 程式完成 |
+| P5 優化 | 拉 insights，依成效調整貼文類型的比例和 prompt | ⬜ 未開始 |
+| UI | 本機控制台：審核、預覽、細項設定、人設編輯、日誌、state 同步 | ✅ 完成 |
+
+**還沒有用真實帳號驗證的部分**（等 P0 完成後第一次試跑時確認）：
+- OpenAI 圖片模型名稱 `gpt-image-2`、Gemini 圖片模型 `gemini-2.5-flash-image`：名稱和參數是依公開資料寫的，如果 API 回錯誤，改 `config/settings.yaml` 就好
+- Threads 抓取 `raw.githubusercontent.com` 圖片網址：如果失敗，改用 Cloudflare R2 這類圖床（`image.host`）
 
 ---
 
@@ -194,6 +200,10 @@ GitHub Actions 沒有常駐的主機，所以 webhook 和即時互動都改成�
 | 7 | Discord 上誰可以核准 | 任何人（非 bot）的 ✅ 都算 | `DISCORD_REVIEWER_IDS` |
 | 8 | 圖片放在哪裡（Threads 需要公開網址） | 存到 repo 的 `state` branch，用 raw 網址 | `config/settings.yaml` → `image.host` |
 | 9 | 固定角色形象（讓每張圖風格一致） | 「白色圓滾滾小機器人、紅色 LED 眼睛」 | `config/settings.yaml` → `image.style` |
+| 10 | 配圖失敗時要不要照樣發純文字 | 照樣發純文字 | `config/settings.yaml` → `image.required` |
+| 11 | 每天產生草稿的時間 | 09:00 | `config/settings.yaml` → `schedule.generate_at` |
+| 12 | 模型拒答時自動換模型 | 開啟 | `config/settings.yaml` → `llm.refusal_fallback` |
+| 13 | 留言轉人工的關鍵字、固定回覆句 | 見設定檔 | `config/settings.yaml` → `replies` |
 
 ---
 
