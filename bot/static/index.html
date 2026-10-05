@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Overlord 控制台</title>
+<style>
+  :root {
+    --bg: #f6f5f2; --panel: #ffffff; --ink: #1d1c1a; --muted: #6b6862; --line: #e3e0da;
+    --accent: #d6453d; --accent-ink: #ffffff; --ok: #2f7d4f; --warn: #b7791f; --bad: #b83a3a;
+    --chip: #efece6; --shadow: 0 1px 2px rgba(0,0,0,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #151413; --panel: #1f1e1c; --ink: #ecebe8; --muted: #a19d96; --line: #34322f;
+      --accent: #ff6b5f; --accent-ink: #1a0f0e; --ok: #5cc28a; --warn: #e2b04a; --bad: #ff7a7a; --chip: #2a2826;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #151413; --panel: #1f1e1c; --ink: #ecebe8; --muted: #a19d96; --line: #34322f;
+    --accent: #ff6b5f; --accent-ink: #1a0f0e; --ok: #5cc28a; --warn: #e2b04a; --bad: #ff7a7a; --chip: #2a2826;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.6 system-ui, -apple-system, "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif; }
+  header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 16px;
+    border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 2; }
+  header h1 { font-size: 17px; margin: 0; }
+  header .spacer { flex: 1; }
+  nav { display: flex; gap: 4px; overflow-x: auto; padding: 8px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  nav button { white-space: nowrap; }
+  main { max-width: 1000px; margin: 0 auto; padding: 16px; }
+  section[hidden] { display: none; }
+  h2 { font-size: 16px; margin: 0 0 12px; }
+  .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; box-shadow: var(--shadow); }
+  .card + .card { margin-top: 12px; }
+  .stat .k { color: var(--muted); font-size: 13px; }
+  .stat .v { font-size: 20px; font-weight: 600; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .chip { display: inline-block; padding: 1px 8px; border-radius: 999px; background: var(--chip); font-size: 12px; margin-right: 4px; }
+  .chip.pending { color: var(--warn); } .chip.approved, .chip.published { color: var(--ok); }
+  .chip.rejected, .chip.failed, .chip.expired { color: var(--bad); }
+  .post { white-space: pre-wrap; font-size: 16px; margin: 8px 0; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  button, select, input, textarea { font: inherit; color: inherit; }
+  button { border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+  button:hover { border-color: var(--muted); }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  button.tab[aria-selected="true"] { background: var(--chip); border-color: var(--muted); font-weight: 600; }
+  button:disabled { opacity: .5; cursor: wait; }
+  input, select, textarea { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; width: 100%; }
+  textarea { min-height: 90px; resize: vertical; }
+  textarea.code { font-family: ui-monospace, Consolas, monospace; font-size: 13px; min-height: 420px; }
+  img.thumb { max-width: 260px; width: 100%; border-radius: 8px; border: 1px solid var(--line); display: block; margin-top: 8px; }
+  .field { display: grid; grid-template-columns: 220px 1fr; gap: 6px 14px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .field label { font-weight: 600; }
+  .field input[type=checkbox] { width: auto; }
+  .banner { padding: 8px 12px; border-radius: 8px; background: var(--chip); margin-bottom: 12px; }
+  .banner.warn { color: var(--warn); }
+  #toast { position: fixed; right: 16px; bottom: 16px; max-width: min(420px, calc(100% - 32px)); background: var(--ink); color: var(--bg);
+    padding: 10px 14px; border-radius: 8px; opacity: 0; transition: opacity .2s; pointer-events: none; white-space: pre-wrap; }
+  #toast.show { opacity: .95; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  td { border-bottom: 1px solid var(--line); padding: 6px 4px; vertical-align: top; word-break: break-word; }
+  @media (max-width: 640px) { .field { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>🤖 Overlord 控制台</h1>
+  <span id="mode" class="chip"></span>
+  <span class="spacer"></span>
+  <button data-git="state-pull" title="從 GitHub 拉最新的 state branch">⬇ 拉取 state</button>
+  <button data-git="state-push" title="把審核結果推回 state branch">⬆ 推送 state</button>
+  <button id="theme" title="切換深淺色">◐</button>
+</header>
+<nav role="tablist">
+  <button class="tab" data-tab="overview">總覽</button>
+  <button class="tab" data-tab="drafts">草稿審核</button>
+  <button class="tab" data-tab="generate">產生貼文</button>
+  <button class="tab" data-tab="history">已發布</button>
+  <button class="tab" data-tab="settings">設定</button>
+  <button class="tab" data-tab="persona">人設</button>
+  <button class="tab" data-tab="log">日誌</button>
+</nav>
+<main>
+  <section id="overview"></section>
+
+  <section id="drafts">
+    <div class="row" style="margin-bottom:12px">
+      <h2 style="margin:0">草稿</h2>
+      <select id="draftScope" style="width:auto"><option value="open">待處理</option><option value="all">全部</option></select>
+    </div>
+    <div id="draftList"></div>
+  </section>
+
+  <section id="generate">
+    <div class="card">
+      <h2>產生貼文</h2>
+      <p class="muted">「預覽」只顯示結果、不存檔，適合調整人設；「建立草稿」會照審核模式送出（Discord 或直接核准）。每次都會呼叫 Claude（以及圖片 API），會產生費用。</p>
+      <div class="row">
+        <label class="muted" for="genNews">時事</label>
+        <select id="genNews" style="width:auto"><option value="auto">依設定比例</option><option value="on">一定用時事</option><option value="off">不用時事</option></select>
+        <button class="primary" data-gen="preview">預覽</button>
+        <button data-gen="draft">建立草稿</button>
+      </div>
+    </div>
+    <div id="genResult"></div>
+  </section>
+
+  <section id="history"><h2>已發布</h2><div id="historyList"></div></section>
+
+  <section id="settings">
+    <div class="banner">改完按「儲存」只會寫進本機的 <code>config/settings.yaml</code>；要讓 GitHub Actions 生效，請按「提交並推送設定」。</div>
+    <div class="card"><div id="settingsForm"></div>
+      <div class="row" style="margin-top:12px">
+        <button class="primary" id="saveSettings">儲存</button>
+        <button data-git="config-commit">提交並推送設定</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>進階：直接編輯 settings.yaml</h2>
+      <p class="muted">新聞來源、黑名單、留言關鍵字等清單在這裡改。</p>
+      <textarea class="code" data-file="settings"></textarea>
+      <div class="row" style="margin-top:8px"><button data-save-file="settings">儲存 YAML</button></div>
+    </div>
+  </section>
+
+  <section id="persona">
+    <div class="card">
+      <h2>人設 prompt（persona/persona.md）</h2>
+      <p class="muted">可用變數：{name}、{self_ref}、{catchphrase_line}（從設定頁帶入）。紅線也寫在這裡，審查員會照著檢查。</p>
+      <textarea class="code" data-file="persona"></textarea>
+      <div class="row" style="margin-top:8px"><button data-save-file="persona">儲存</button></div>
+    </div>
+    <div class="card">
+      <h2>範例貼文（persona/examples.md）</h2>
+      <textarea class="code" data-file="examples"></textarea>
+      <div class="row" style="margin-top:8px">
+        <button data-save-file="examples">儲存</button>
+        <button data-git="config-commit">提交並推送人設</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="log"><h2>日誌</h2><div class="card"><table id="logTable"></table></div></section>
+</main>
+<div id="toast" role="status"></div>
+
+<script>
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt = iso => iso ? new Date(iso).toLocaleString("zh-TW", {hour12: false}) : "—";
+const STATUS = {pending:"等待審核", approved:"已核准", rejected:"已丟棄", expired:"逾時", published:"已發布", failed:"失敗"};
+
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 3500); }
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, {headers: {"Content-Type": "application/json"}, ...opts,
+    body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined});
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail || res.statusText);
+  return data;
+}
+
+async function busy(btn, fn) {
+  btn.disabled = true;
+  try { return await fn(); } catch (e) { toast("錯誤：" + e.message); } finally { btn.disabled = false; }
+}
+
+// ---- tabs ----
+const loaders = {};
+function show(tab) {
+  $$("main > section").forEach(s => s.hidden = s.id !== tab);
+  $$("button.tab").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === tab));
+  try { localStorage.setItem("tab", tab); } catch {}
+  loaders[tab]?.();
+}
+$$("button.tab").forEach(b => b.onclick = () => show(b.dataset.tab));
+
+// ---- overview ----
+function setMode(o) {
+  $("#mode").textContent = o.dry_run ? "DRY RUN（不會真的發文）" : "LIVE";
+  $("#mode").style.color = o.dry_run ? "var(--warn)" : "var(--ok)";
+}
+loaders.overview = async () => {
+  const o = await api("/api/overview");
+  setMode(o);
+  const stat = (k, v) => `<div class="card stat"><div class="k">${k}</div><div class="v">${v}</div></div>`;
+  const counts = Object.entries(o.counts).map(([k, v]) => `<span class="chip ${k}">${STATUS[k] || k} ${v}</span>`).join("") || "—";
+  const sch = o.schedule;
+  const upcoming = o.upcoming.slice(0, 3).map(fmt).join("<br>")
+    || `<span class="muted">每天 ${esc(sch.generate_at)} 產生草稿<br>時段 ${esc((sch.fixed_times || []).join("、") || "隨機")}（${esc(sch.window.join("–"))}）</span>`;
+  $("#overview").innerHTML = `
+    ${o.dry_run ? '<div class="banner warn">目前是 DRY RUN：流程照跑，但不會真的發到 Threads。設定 DRY_RUN=false 才會正式發文。</div>' : ""}
+    ${o.review_mode === "discord" && !o.discord_configured ? '<div class="banner warn">審核模式是 Discord，但本機沒有設定 DISCORD_BOT_TOKEN / DISCORD_CHANNEL_ID：草稿只能在這個控制台審核。</div>' : ""}
+    <div class="grid">
+      ${stat("人設", esc(o.persona.name) + `<div class="muted">自稱：${esc(o.persona.self_ref)}</div>`)}
+      ${stat("審核模式", `發文：${o.review_mode}<div class="muted">回覆：${o.reply_review_mode}</div>`)}
+      ${stat("排定發布", `<span style="font-size:15px">${upcoming}</span>`)}
+      ${stat("24 小時內發布", o.published_24h)}
+      ${stat("Token 已使用", o.token_age_days == null ? "—" : o.token_age_days + " 天")}
+      ${stat("今日已產生", o.meta.last_generated_date || "—")}
+    </div>
+    <div class="card" style="margin-top:12px"><div class="muted">草稿狀態</div>${counts}</div>`;
+};
+
+// ---- drafts ----
+function draftCard(d) {
+  const open = d.status === "pending" || d.status === "approved";
+  return `<div class="card" data-id="${d.id}">
+    <div class="row"><span class="chip ${d.status}">${STATUS[d.status] || d.status}</span>
+      <span class="chip">${d.kind === "reply" ? "留言回覆" : "貼文"}</span>
+      ${d.post_type ? `<span class="chip">${esc(d.post_type)}</span>` : ""}
+      ${d.score != null ? `<span class="chip">分數 ${d.score}</span>` : ""}
+      <span class="muted">建立 ${fmt(d.created_at)}${d.scheduled_at ? "・預定 " + fmt(d.scheduled_at) : ""}</span></div>
+    ${d.reply_to_text ? `<div class="muted">回覆 @${esc(d.reply_to_user)}：「${esc(d.reply_to_text)}」</div>` : ""}
+    ${d.news ? `<div class="muted">新聞：<a href="${esc(d.news.link)}" target="_blank" rel="noopener">${esc(d.news.title)}</a></div>` : ""}
+    ${open ? `<textarea class="edit">${esc(d.text)}</textarea>` : `<div class="post">${esc(d.text)}</div>`}
+    ${d.image_file ? `<img class="thumb" src="/media/${encodeURIComponent(d.image_file)}" alt="配圖">` : ""}
+    ${d.review_reason ? `<div class="muted">審查：${esc(d.review_reason)}</div>` : ""}
+    ${d.error ? `<div class="muted" style="color:var(--bad)">${esc(d.error)}</div>` : ""}
+    ${d.permalink ? `<a href="${esc(d.permalink)}" target="_blank" rel="noopener">在 Threads 上查看</a>` : ""}
+    ${open ? `<div class="row" style="margin-top:8px">
+      ${d.status === "pending" ? '<button class="primary" data-act="approve">✅ 核准</button>' : ""}
+      <button data-act="reject">❌ 丟棄</button>
+      <button data-act="save">儲存修改</button>
+      <button data-act="publish">立即發布</button></div>` : ""}
+  </div>`;
+}
+loaders.drafts = async () => {
+  const list = await api("/api/drafts?scope=" + $("#draftScope").value);
+  $("#draftList").innerHTML = list.map(draftCard).join("") || '<div class="card muted">沒有草稿</div>';
+};
+$("#draftScope").onchange = loaders.drafts;
+$("#draftList").onclick = e => {
+  const btn = e.target.closest("button[data-act]"); if (!btn) return;
+  const card = btn.closest("[data-id]"), id = card.dataset.id, act = btn.dataset.act;
+  if (act === "publish" && !confirm("確定要立即發布這則嗎？")) return;
+  busy(btn, async () => {
+    if (act === "save") await api(`/api/drafts/${id}`, {method: "PATCH", body: {text: $(".edit", card).value}});
+    else await api(`/api/drafts/${id}/${act}`, {method: "POST"});
+    toast("完成。記得按「推送 state」讓 GitHub Actions 看到變更。");
+    loaders.drafts();
+  });
+};
+
+// ---- generate ----
+$$("button[data-gen]").forEach(btn => btn.onclick = () => busy(btn, async () => {
+  toast("生成中，約需 30 秒…");
+  const r = await api("/api/generate/" + btn.dataset.gen, {method: "POST", body: {news: $("#genNews").value}});
+  if (!r) { toast("這次沒有產生草稿，原因請看日誌"); return; }
+  $("#genResult").insertAdjacentHTML("afterbegin", btn.dataset.gen === "draft" ? draftCard(r) : `<div class="card">
+    <div class="row"><span class="chip">預覽</span><span class="chip">${esc(r.post_type)}</span><span class="chip">分數 ${r.score}</span></div>
+    ${r.news ? `<div class="muted">新聞：${esc(r.news.title)}</div>` : ""}
+    <div class="post">${esc(r.text)}</div>
+    ${r.image_prompt ? `<div class="muted">圖片描述：${esc(r.image_prompt)}</div>` : ""}
+    <div class="muted">審查：${esc(r.review_reason)}</div></div>`);
+}));
+
+// ---- history ----
+loaders.history = async () => {
+  const list = await api("/api/history");
+  $("#historyList").innerHTML = list.map(h => `<div class="card"><div class="row">
+      <span class="chip">${h.kind === "reply" ? "回覆" : "貼文"}</span><span class="muted">${fmt(h.ts)}</span>
+      ${String(h.threads_id).startsWith("dry-run") ? '<span class="chip pending">dry run</span>' : ""}</div>
+      <div class="post">${esc(h.text)}</div></div>`).join("") || '<div class="card muted">還沒有發布紀錄</div>';
+};
+
+// ---- settings ----
+function fieldInput(f) {
+  const v = f.value;
+  if (f.type === "bool") return `<input type="checkbox" ${v ? "checked" : ""}>`;
+  if (f.type === "select") return `<select>${f.options.map(o => `<option ${o === v ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>`;
+  if (f.type === "textarea") return `<textarea>${esc(v)}</textarea>`;
+  if (f.type === "list") return `<input value="${esc((v || []).join(", "))}">`;
+  return `<input ${f.type === "number" ? 'type="number" step="any"' : ""} value="${esc(v)}">`;
+}
+loaders.settings = async () => {
+  const fields = await api("/api/settings");
+  $("#settingsForm").innerHTML = fields.map(f => `<div class="field" data-path="${f.path}" data-type="${f.type}">
+    <label>${esc(f.label)}<div class="muted">${f.path}</div></label>
+    <div>${fieldInput(f)}${f.help ? `<div class="muted">${esc(f.help)}</div>` : ""}</div></div>`).join("");
+  loadFile("settings");
+};
+$("#saveSettings").onclick = e => busy(e.target, async () => {
+  const body = {};
+  $$("#settingsForm .field").forEach(el => {
+    const input = $("input, select, textarea", el);
+    body[el.dataset.path] = el.dataset.type === "bool" ? input.checked : input.value;
+  });
+  await api("/api/settings", {method: "PUT", body});
+  toast("已儲存設定"); loaders.settings();
+});
+
+// ---- raw files ----
+async function loadFile(key) { $(`textarea[data-file="${key}"]`).value = (await api("/api/files/" + key)).content; }
+$$("button[data-save-file]").forEach(btn => btn.onclick = () => busy(btn, async () => {
+  const key = btn.dataset.saveFile;
+  await api("/api/files/" + key, {method: "PUT", body: {content: $(`textarea[data-file="${key}"]`).value}});
+  toast("已儲存 " + key); if (key === "settings") loaders.settings();
+}));
+loaders.persona = () => { loadFile("persona"); loadFile("examples"); };
+
+// ---- log ----
+loaders.log = async () => {
+  const rows = await api("/api/log");
+  $("#logTable").innerHTML = rows.map(r => {
+    const {ts, event, ...rest} = r;
+    return `<tr><td class="muted" style="white-space:nowrap">${fmt(ts)}</td><td><b>${esc(event)}</b></td><td>${esc(JSON.stringify(rest))}</td></tr>`;
+  }).join("") || "<tr><td class='muted'>沒有紀錄</td></tr>";
+};
+
+// ---- git ----
+$$("button[data-git]").forEach(btn => btn.onclick = () => busy(btn, async () => {
+  const r = await api("/api/git/" + btn.dataset.git, {method: "POST"});
+  toast((r.ok ? "完成" : "失敗") + (r.output ? "：\n" + r.output.slice(-400) : ""));
+  const current = $("button.tab[aria-selected=true]")?.dataset.tab; if (current) loaders[current]?.();
+}));
+
+// ---- theme ----
+$("#theme").onclick = () => {
+  const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+  const cur = document.documentElement.dataset.theme || (dark ? "dark" : "light");
+  document.documentElement.dataset.theme = cur === "dark" ? "light" : "dark";
+  try { localStorage.setItem("theme", document.documentElement.dataset.theme); } catch {}
+};
+try { const t = localStorage.getItem("theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+
+let start = "overview";
+try { start = localStorage.getItem("tab") || start; } catch {}
+show(loaders[start] ? start : "overview");
+if (start !== "overview") api("/api/overview").then(setMode).catch(() => {});
+</script>
+</body>
+</html>

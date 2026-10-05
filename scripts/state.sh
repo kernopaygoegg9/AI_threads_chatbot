@@ -9,7 +9,10 @@ DIR="${STATE_DIR:-state}"
 
 case "${1:-}" in
   pull)
-    if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
+    if [ -e "$DIR/.git" ]; then
+      # already checked out (local dashboard): just fast-forward to the latest bot state
+      git -C "$DIR" pull -q --rebase origin "$BRANCH"
+    elif git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
       git fetch --depth 1 origin "+$BRANCH:refs/remotes/origin/$BRANCH"
       git worktree add -B "$BRANCH" "$DIR" "origin/$BRANCH"
     else

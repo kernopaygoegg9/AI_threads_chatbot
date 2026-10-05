@@ -6,12 +6,12 @@ requires-python = ">=3.11"
 dependencies = [
     "anthropic>=0.70",
     "requests>=2.32",
-    "pyyaml>=6.0",
     "python-dotenv>=1.0",
     "feedparser>=6.0",
     "fastapi>=0.115",
     "uvicorn>=0.30",
     "tzdata>=2026.5",
+    "ruamel-yaml>=0.18",
 ]
 
 [dependency-groups]

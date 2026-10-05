@@ -5,7 +5,7 @@ from __future__ import annotations
 import random
 from datetime import datetime, timedelta
 
-from . import content, discord, images, news, scheduler, settings, threads
+from . import content, discord, guard, images, news, scheduler, settings, threads
 from .store import APPROVED, EXPIRED, FAILED, PENDING, PUBLISHED, REJECTED, Store, iso, now_utc, parse_iso
 
 
@@ -166,3 +166,13 @@ def reject(st: Store, draft_id: str) -> dict | None:
 
 def approve(st: Store, draft_id: str) -> dict | None:
     return set_status(st, draft_id, APPROVED)
+
+
+def edit_text(st: Store, draft_id: str, text: str) -> dict:
+    """Manually rewrite an open draft. Hard rules still apply; the Claude review is skipped (a human wrote it)."""
+    draft = st.get_draft(draft_id)
+    if not draft or draft["status"] not in (PENDING, APPROVED):
+        raise ValueError("only pending or approved drafts can be edited")
+    if reason := guard.rule_violation(text):
+        raise ValueError(f"text rejected by guard: {reason}")
+    return set_status(st, draft_id, draft["status"], text=text.strip(), edited=True)

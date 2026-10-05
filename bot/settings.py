@@ -9,8 +9,8 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
-import yaml
 from dotenv import load_dotenv
+from ruamel.yaml import YAML
 
 ROOT = Path(__file__).resolve().parent.parent
 CONFIG_PATH = Path(os.environ.get("BOT_CONFIG", ROOT / "config" / "settings.yaml"))
@@ -70,7 +70,7 @@ def state_dir() -> Path:
 
 def load_config(path: Path | None = None) -> dict[str, Any]:
     with open(path or CONFIG_PATH, encoding="utf-8") as f:
-        return yaml.safe_load(f) or {}
+        return YAML(typ="safe").load(f) or {}
 
 
 @lru_cache(maxsize=1)
