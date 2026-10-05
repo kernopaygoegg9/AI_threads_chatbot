@@ -134,8 +134,12 @@ def build_parser() -> argparse.ArgumentParser:
             s.add_argument("-n", "--count", type=int, default=1)
         s.set_defaults(fn=fn)
 
-    for name in ("approve", "reject", "publish-now"):
-        s = sub.add_parser(name, help=f"{name} a draft by id")
+    for name, help_ in (
+        ("approve", "approve a draft"),
+        ("reject", "reject a draft"),
+        ("publish-now", "publish a draft immediately"),
+    ):
+        s = sub.add_parser(name, help=help_)
         s.add_argument("draft_id")
         s.set_defaults(fn=cmd_publish_now if name == "publish-now" else cmd_set_status)
 
@@ -155,6 +159,9 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # Windows consoles default to a legacy code page that cannot print emoji or some CJK text.
+    for stream in (sys.stdout, sys.stderr):
+        stream.reconfigure(encoding="utf-8", errors="replace")
     args = build_parser().parse_args(argv)
     return args.fn(args, Store())
 
